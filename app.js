@@ -126,7 +126,9 @@ app.post("/get-reply", async (req, res) => {
       query: data.input,
     });
 
-    return res.json({ reply });
+    console.log(reply);
+
+    return res.status(200).json({ reply });
   } catch (error) {
     console.error("Error fetching distinct languages:", error);
     return res.status(500).json({ error: "Internal server error" });
