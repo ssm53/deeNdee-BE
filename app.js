@@ -2,8 +2,10 @@ import express from "express";
 import prisma from "./src/utils/prisma.js";
 import morgan from "morgan";
 import cors from "cors"; // Import the cors middleware
+// import fs from "fs";
 import usersRouter from "./src/controllers/users.controllers.js";
 import authRouter from "./src/controllers/authUser.controllers.js";
+import imageGenRouter from "./src/controllers/imageGen.controllers.js";
 // now here we're importing necessary imports for langchain etc
 import { OpenAI } from "langchain/llms/openai";
 import { RetrievalQAChain } from "langchain/chains";
@@ -19,6 +21,7 @@ app.use(cors()); // Use the cors middleware to allow cross-origin requests
 app.use(express.json()); // Add this middleware to parse JSON in request bodies
 app.use("/users", usersRouter);
 app.use("/auth", authRouter);
+app.use("/get-art", imageGenRouter);
 
 // // load our env variables for langchain
 // dotenv.config();
@@ -132,6 +135,48 @@ app.post("/get-reply", async (req, res) => {
   } catch (error) {
     console.error("Error fetching distinct languages:", error);
     return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// endpoint to get number of prompts remaining to see if api call can be done by user or not
+app.get("/prompts-remaining/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId); // Parse userId from the URL parameter
+
+  try {
+    // Use Prisma to find the no_of_prompts remaining by user
+    const number2 = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { imgLeft: true },
+    });
+
+    // Return the images as JSON response
+    return res.json({ promptsRemaining: number2.imgLeft });
+  } catch (error) {
+    // Handle errors and return an error response if needed
+    console.error("Error retrieving no of prompts remaining:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// endpoint to decrement imgLeft field by 1
+app.post("/dec-no-of-prompts/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId); // Parse userId from the URL parameter
+
+  try {
+    // Use Prisma to increment the no_of_prompts field for the specified user
+    const decPrompts = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        imgLeft: { decrement: 1 },
+      },
+    });
+
+    // Return the images as JSON response
+    return res.json({ decPrompts, userId });
+  } catch (error) {
+    // Handle errors and return an error response if needed
+    console.error("Error increasing prompts:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 export default app; // added this
