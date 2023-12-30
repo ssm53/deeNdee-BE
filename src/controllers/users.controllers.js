@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import prisma from "../utils/prisma.js";
-// import { validateUser } from "../validators/users.js";
+import { validateUser } from "../validators/users.js";
 import { filter } from "../utils/common.js";
 // import sgMail from "@sendgrid/mail"; // SENDGRID - REACTIVATE
 const router = express.Router();
@@ -10,12 +10,13 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   const data = req.body;
 
-  // const validationErrors = validateUser(data);
+  const validationErrors = validateUser(data);
+  console.log(validationErrors);
 
-  // if (Object.keys(validationErrors).length != 0)
-  //   return res.status(400).send({
-  //     error: validationErrors,
-  //   });
+  if (Object.keys(validationErrors).length != 0)
+    return res.status(400).send({
+      error: validationErrors,
+    });
 
   data.password = bcrypt.hashSync(data.password, 8);
   prisma.user
