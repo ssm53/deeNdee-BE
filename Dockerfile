@@ -1,6 +1,6 @@
 FROM node:18-buster-slim
 
-RUN apt-get update && apt-get install -y openssl libssl-dev ca-certificates
+RUN apt-get update && apt-get install -y openssl libssl-dev ca-certificates python3 build-essential
 
 WORKDIR /
 
