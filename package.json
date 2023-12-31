@@ -8,8 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx dotenv -e .env.development node server.js",
     "start:dev": "npx dotenv -e .env.development nodemon server.js",
-    "migrate:dev": "dotenv -e .env.development -- npx prisma migrate dev",
-    "migrate:production": "npx prisma migrate deploy && npx prisma generate"
+    "migrate:dev": "dotenv -e .env.development -- npx prisma migrate dev"
   },
   "keywords": [],
   "author": "",
