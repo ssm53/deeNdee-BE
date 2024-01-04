@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for dnd-be-bold-water-9324 on 2023-12-31T19:13:34+08:00
+# fly.toml app configuration file generated for dnd-be-quiet-glade-583 on 2023-12-31T23:13:48+08:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "dnd-be-bold-water-9324"
+app = "dnd-be-quiet-glade-583"
 primary_region = "sin"
 
 [build]
@@ -15,3 +15,8 @@ primary_region = "sin"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1024

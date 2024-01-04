@@ -6,6 +6,11 @@ import { validateUser } from "../validators/users.js";
 import { filter } from "../utils/common.js";
 // import sgMail from "@sendgrid/mail"; // SENDGRID - REACTIVATE
 const router = express.Router();
+router.get("/health", async (req, res) => {
+  return res.status(200).json({
+    healthy: "is healthy",
+  });
+});
 
 router.post("/", async (req, res) => {
   const data = req.body;

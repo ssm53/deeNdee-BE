@@ -1,5 +1,18 @@
 version: "3.8"
 services:
+  express-server:
+    container_name: express-server
+    build:
+      dockerfile: Dockerfile
+      context: .
+    restart: always
+    env_file:
+      - .env.development
+    volumes:
+      - .:/usr/src/app:ro
+      - /usr/src/app/node_modules/
+    networks:
+      - main
   db:
     image: postgres:14.1-alpine
     restart: always
@@ -11,3 +24,9 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ./db:/var/lib/postgresql/data
+    networks:
+      - main
+
+networks:
+  main:
+    driver: bridge
