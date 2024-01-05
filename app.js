@@ -14,6 +14,7 @@ import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { CharacterTextSplitter } from "langchain/text_splitter";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
+import { promises as fsPromises } from "fs";
 
 const app = express();
 app.use(morgan("combined"));
@@ -23,96 +24,137 @@ app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/get-art", imageGenRouter);
 
-// // load our env variables for langchain
-// dotenv.config();
-
+// // BEFORE ADDING USER ID TO MAKE DIFF FILES
 // // set up input data and paths
 // const txrFileName = "dnd_draft_1";
-// let question = "Do I have anything with me?";
+// // let question = "Do I have anything with me?";
 // const txtPath = `./${txrFileName}.txt`;
 // const VECTOR_STORE_PATH = `${txrFileName}.index`;
 
-// // define the main function runEmbeddings
+// app.post("/get-reply", async (req, res) => {
+//   try {
+//     let data = req.body; // so to get question, it should be data.input
+//     // initialise a new openai model with empty config object
+//     const model = new OpenAI();
 
-// export const runWithEmbeddings = async () => {
-//   // initialise a new openai model with empty config object
-//   const model = new OpenAI();
+//     // check if the vectore exists
+//     let vectorStore;
+//     if (fs.existsSync(VECTOR_STORE_PATH)) {
+//       // if exists, load into memory
+//       console.log("It exists");
+//       vectorStore = await HNSWLib.load(
+//         VECTOR_STORE_PATH,
+//         new OpenAIEmbeddings()
+//       );
+//     } else {
+//       // if not, we create a file path
+//       // read the input text file
+//       const text = fs.readFileSync(txtPath, "utf8");
+//       // create text splieeter with chunk size
+//       const textSplitter = new CharacterTextSplitter({
+//         separator: "\n",
+//         chunkSize: 1000,
+//       });
 
-//   // check if the vectore exists
-//   let vectorStore;
-//   if (fs.existsSync(VECTOR_STORE_PATH)) {
-//     // if exists, load into memory
-//     console.log("It exists");
-//     vectorStore = await HNSWLib.load(VECTOR_STORE_PATH, new OpenAIEmbeddings());
-//   } else {
-//     // if not, we create a file path
-//     // read the input text file
-//     const text = fs.readFileSync(txtPath, "utf8");
-//     // create text splieeter with chunk size
-//     const textSplitter = new CharacterTextSplitter({
-//       separator: "\n",
-//       chunkSize: 1000,
+//       // split the text into documents
+//       const docs = await textSplitter.createDocuments([text]);
+
+//       // create a new vector store from the documents using embeddings
+//       vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings());
+
+//       // save the vector store into a file
+//       await vectorStore.save(VECTOR_STORE_PATH);
+//     }
+
+//     // create a retrievalQA chain by passin the initialised openaimodel and vector store retriever
+//     const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
+
+//     // call the retrievalQAchain with the input question, and store result in the 'res' variable
+//     const reply = await chain.call({
+//       query: data.input,
 //     });
-//     // split the text into documents
-//     const docs = await textSplitter.createDocuments([text]);
 
-//     // create a new vector store from the documents using embeddings
-//     vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings());
+//     console.log(reply);
 
-//     // save the vector store into a file
-//     await vectorStore.save(VECTOR_STORE_PATH);
+//     // append user's input and the reply to the text file
+//     const logData = `User: ${data.input}\nYou:${reply.text}\n\n`;
+//     fs.appendFileSync(txtPath, logData);
+
+//     return res.status(200).json({ reply });
+//   } catch (error) {
+//     console.error("Error fetching distinct languages:", error);
+//     return res.status(500).json({ error: "Internal server error" });
 //   }
+// });
 
-//   // create a retrievalQA chain by passin the initialised openaimodel and vector store retriever
-//   const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
+const readFileAsync = fsPromises.readFile;
+const writeFileAsync = fsPromises.writeFile;
 
-//   // call the retrievalQAchain with the input question, and store result in the 'res' variable
-//   const res = await chain.call({
-//     query: question,
-//   });
+app.post("/get-reply/:userId", async (req, res) => {
+  let data = req.body;
+  const userId = parseInt(req.params.userId);
 
-//   // log the result into console
-//   console.log({ res });
-// };
+  const sourceFilePath = "dnd_draft_1.txt";
+  const destinationFileName = `dnd_draft_1_${userId}.txt`;
+  const destinationFilePath = `./${destinationFileName}`;
 
-// // execute main function
-// runWithEmbeddings();
-
-// lets attempt to put everything into an endpoint
-
-// set up input data and paths
-const txrFileName = "dnd_draft_1";
-// let question = "Do I have anything with me?";
-const txtPath = `./${txrFileName}.txt`;
-const VECTOR_STORE_PATH = `${txrFileName}.index`;
-
-app.post("/get-reply", async (req, res) => {
   try {
-    let data = req.body; // so to get question, it should be data.input
-    // initialise a new openai model with empty config object
+    // Check if the destination file already exists
+    await fsPromises.access(destinationFilePath);
+
+    // If the access is successful, the file exists
+    console.log(
+      `File ${destinationFileName} already exists. Skipping creation.`
+    );
+  } catch (error) {
+    // If there's an error, the file does not exist, proceed to create it
+    const sourceFileContent = await readFileAsync(sourceFilePath, "utf8");
+    const txtFormattedContent = `Text: ${sourceFileContent}`;
+    await writeFileAsync(destinationFilePath, txtFormattedContent, "utf8");
+    console.log("File copy successful!");
+  }
+
+  // // Create user-specific file names
+  // let sourceFilePath = "dnd_draft_1.txt";
+  // let destinationFileName = `dnd_draft_1_${userId}.txt`;
+
+  // // Read the content of the source file
+  // const sourceFileContent = await readFileAsync(sourceFilePath, "utf8");
+
+  // // Write the content to the new file with the desired name
+  // const destinationFilePath = destinationFileName;
+  // // Ensure that the sourceFileContent is in txt format
+  // const txtFormattedContent = `Text: ${sourceFileContent}`;
+  // await writeFileAsync(`./${destinationFilePath}`, txtFormattedContent, "utf8");
+  // console.log("File copy successful!");
+
+  let oriTxtFileName = "dnd_draft_1";
+  let oriTxtPath = `./${oriTxtFileName}.txt`;
+  let txtFileName = `dnd_draft_1_${userId}`;
+  let txtPath = `./${txtFileName}.txt`;
+  let VECTOR_STORE_PATH = `${txtFileName}.index`;
+  try {
     const model = new OpenAI();
 
-    // check if the vectore exists
+    // check if the vector store exists
     let vectorStore;
     if (fs.existsSync(VECTOR_STORE_PATH)) {
-      // if exists, load into memory
       console.log("It exists");
       vectorStore = await HNSWLib.load(
         VECTOR_STORE_PATH,
         new OpenAIEmbeddings()
       );
     } else {
-      // if not, we create a file path
-      // read the input text file
-      const text = fs.readFileSync(txtPath, "utf8");
-      // create text splieeter with chunk size
+      console.log("filepath not exist yet");
+
+      // create text splitter with chunk size
       const textSplitter = new CharacterTextSplitter({
         separator: "\n",
         chunkSize: 1000,
       });
 
       // split the text into documents
-      const docs = await textSplitter.createDocuments([text]);
+      const docs = await textSplitter.createDocuments([sourceFileContent]);
 
       // create a new vector store from the documents using embeddings
       vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings());
@@ -121,15 +163,19 @@ app.post("/get-reply", async (req, res) => {
       await vectorStore.save(VECTOR_STORE_PATH);
     }
 
-    // create a retrievalQA chain by passin the initialised openaimodel and vector store retriever
+    // create a retrievalQA chain by passing the initialized openai model and vector store retriever
     const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
 
-    // call the retrievalQAchain with the input question, and store result in the 'res' variable
+    // call the retrievalQA chain with the input question, and store result in the 'res' variable
     const reply = await chain.call({
       query: data.input,
     });
 
     console.log(reply);
+
+    // append user's input and the reply to the text file
+    const logData = `User: ${data.input}\nAI: ${reply.text}\n\n`;
+    await fsPromises.appendFile(txtPath, logData, "utf8");
 
     return res.status(200).json({ reply });
   } catch (error) {
@@ -179,4 +225,26 @@ app.post("/dec-no-of-prompts/:userId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// delete file
+app.delete("/delete-file/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId);
+
+  try {
+    const filePath = `dnd_draft_1_${userId}.txt`;
+
+    // Check if the file exists before attempting to delete
+    await fsPromises.access(filePath);
+
+    // If the file exists, proceed with deletion
+    await fsPromises.unlink(filePath);
+
+    return res.status(204).send(); // Successful deletion (status 204)
+  } catch (error) {
+    // If the file doesn't exist, access or unlink will throw an error
+    console.error(error);
+    return res.status(404).json({ error: "File not found" });
+  }
+});
+
 export default app; // added this
